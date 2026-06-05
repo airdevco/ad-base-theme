@@ -1,0 +1,14 @@
+/**
+ * Styles scoped to the admin-sdc sandbox only.
+ * The root layout wraps the shell in `.admin-sdc-root` — add overrides here
+ * (e.g. CSS variables, typography) without touching global or `/admin/*` styles.
+ *
+ * Theme: follows `globals.css` (same as `/account-sdc`): light/dark via `.dark` on `<html>`.
+ * Light mode keeps explicit SDC chrome (e.g. white sidebar); `dark:` utilities map surfaces
+ * and text to shared tokens. Tables use `border-border`, `text-foreground`, `muted-*`.
+ *
+ * Primitives for this area live in `src/components/admin-sdc-ui/` (fork of `admin-ui`).
+ */
+.admin-sdc-root {
+  /* inherit theme from document */
+}
