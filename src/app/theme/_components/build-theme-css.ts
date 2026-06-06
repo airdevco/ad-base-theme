@@ -2,6 +2,7 @@ import type { ThemeState } from "./theme-state";
 import { DEFAULTS, computeDarkVariant, deriveExtensionTokens, CURATED_FONTS, hexToHsl } from "./theme-state";
 import type { CssVarMap } from "./theme-preset-bundle";
 import { layerAToPreviewTokens } from "./parse-theme-css";
+import { chartPaletteToTokens, deriveChartPalette } from "@/lib/chart-tokens";
 
 
 /** Map font display names to their next/font CSS variable names */
@@ -75,6 +76,10 @@ const LIGHT_TOKENS: Record<string, string> = {
   "--color-input": "#eeeff1",
   "--color-ring": "#266df0",
   "--color-chart-1": "#266df0",
+  "--color-chart-2": "hsl(217 70% 62%)",
+  "--color-chart-3": "hsl(217 55% 74%)",
+  "--color-chart-4": "hsl(217 90% 38%)",
+  "--color-chart-5": "hsl(217 45% 85%)",
   "--color-surface": "#fafafa",
   "--color-sidebar": "#fbfbfb",
   "--color-sidebar-foreground": "#242529",
@@ -91,18 +96,21 @@ const LIGHT_TOKENS: Record<string, string> = {
  * Keeps the navy's hue & saturation but at very low lightness values,
  * giving a rich glossy dark feel that's branded rather than neutral gray.
  */
-function buildDarkTokens(brandColor: string, primaryColor: string, backgroundColor?: string): Record<string, string> {
+function buildDarkTokens(
+  brandColor: string,
+  basePrimary: string,
+  backgroundColor?: string
+): Record<string, string> {
   const { h, s } = hexToHsl(brandColor);
-  // Use a dampened saturation so it tints without overwhelming
   const sat = Math.round(Math.min(s * 100, 40));
   const hue = Math.round(h);
-
   const hsl = (l: number) => `hsl(${hue} ${sat}% ${l}%)`;
+  const primaryColor = computeDarkVariant(basePrimary);
 
   return {
-    "--color-background": backgroundColor || hsl(4),       // page bg — very dark
+    "--color-background": backgroundColor || hsl(4),
     "--color-foreground": "hsl(0 0% 98%)",
-    "--color-card": hsl(7),             // cards — slightly lighter
+    "--color-card": hsl(7),
     "--color-card-foreground": "hsl(0 0% 98%)",
     "--color-popover": hsl(7),
     "--color-popover-foreground": "hsl(0 0% 98%)",
@@ -119,7 +127,6 @@ function buildDarkTokens(brandColor: string, primaryColor: string, backgroundCol
     "--color-border": hsl(18),
     "--color-input": hsl(11),
     "--color-ring": primaryColor,
-    "--color-chart-1": primaryColor,
     "--color-surface": hsl(7),
     "--color-sidebar": hsl(8),
     "--color-sidebar-foreground": "hsl(0 0% 96%)",
@@ -153,27 +160,34 @@ export function buildPreviewStyle(
         : null;
 
   const tokens = isDark
-    ? buildDarkTokens(theme.brandColor, computeDarkVariant(theme.primaryColor), theme.backgroundColor)
+    ? buildDarkTokens(theme.brandColor, theme.primaryColor, theme.backgroundColor)
     : { ...LIGHT_TOKENS };
 
   if (activeLayerA) {
     Object.assign(tokens, layerAToPreviewTokens(activeLayerA));
-  } else {
-    // Light mode: apply primary color override to relevant tokens
-    if (!isDark && theme.primaryColor !== DEFAULTS.primaryColor) {
-      tokens["--color-primary"] = theme.primaryColor;
-      tokens["--color-ring"] = theme.primaryColor;
-      tokens["--color-chart-1"] = theme.primaryColor;
-      tokens["--color-sidebar-primary"] = theme.primaryColor;
-      tokens["--color-sidebar-ring"] = theme.primaryColor;
-    }
+  }
 
-    // Background color override (light or dark)
-    if (!isDark && theme.backgroundColor !== DEFAULTS.backgroundColor) {
-      tokens["--color-background"] = theme.backgroundColor;
-      tokens["--color-surface"] = theme.backgroundColor;
-      tokens["--color-sidebar"] = theme.backgroundColor;
-    }
+  if (!isDark && theme.primaryColor !== DEFAULTS.primaryColor && !activeLayerA) {
+    tokens["--color-primary"] = theme.primaryColor;
+    tokens["--color-ring"] = theme.primaryColor;
+    tokens["--color-sidebar-primary"] = theme.primaryColor;
+    tokens["--color-sidebar-ring"] = theme.primaryColor;
+  }
+
+  if (!isDark && theme.backgroundColor !== DEFAULTS.backgroundColor) {
+    tokens["--color-background"] = theme.backgroundColor;
+    tokens["--color-surface"] = theme.backgroundColor;
+    tokens["--color-sidebar"] = theme.backgroundColor;
+  }
+
+  const layerHasCharts =
+    activeLayerA != null &&
+    (Boolean(activeLayerA["--chart-1"]) || Boolean(activeLayerA["--color-chart-1"]));
+  if (!layerHasCharts) {
+    Object.assign(
+      tokens,
+      chartPaletteToTokens(deriveChartPalette(theme.primaryColor, isDark))
+    );
   }
 
 

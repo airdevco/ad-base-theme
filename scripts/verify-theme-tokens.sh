@@ -9,9 +9,8 @@
 #   src/app/(auth)/_components/auth-flow.tsx  — Google OAuth + SVG brand fills
 #   src/app/(auth)/_components/auth-flow-sdc-shared.tsx
 #   src/app/(settings)/account/_components/appearance-section.tsx
-#   src/app/(admin)/admin/dashboard/_components/*-chart.tsx
 #   src/lib/themes.ts                         — theme catalog swatches
-#   src/mock/dashboard.ts                     — chart series mock data
+#   src/mock/dashboard.ts                     — chart series mock data (no colors)
 
 set -euo pipefail
 
@@ -37,7 +36,6 @@ is_allowlisted() {
   [[ "$file" == "src/app/(settings)/account/_components/appearance-section.tsx" ]] && return 0
   [[ "$file" == "src/lib/themes.ts" ]] && return 0
   [[ "$file" == "src/mock/dashboard.ts" ]] && return 0
-  [[ "$file" =~ ^src/app/\(admin\)/admin/dashboard/_components/.*-chart\.tsx$ ]] && return 0
   return 1
 }
 

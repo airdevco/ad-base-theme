@@ -62,9 +62,9 @@ export const mockUserGrowthData = [
 ];
 
 export const mockProjectBreakdownData = [
-  { status: "Active", count: 23, color: "#3B82F6" },
-  { status: "Planning", count: 12, color: "#93C5FD" },
-  { status: "On Hold", count: 8, color: "#D1D5DB" },
+  { status: "Active", count: 23 },
+  { status: "Planning", count: 12 },
+  { status: "On Hold", count: 8 },
 ];
 
 export const mockEmailEngagementData = [

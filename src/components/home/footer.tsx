@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/layout/logo";
+import { cn } from "@/lib/utils";
 
 const platformLinks = [
   { label: "Services", href: "#services" },
@@ -33,10 +34,15 @@ const footerColumnHeading =
 /** Footer nav links — muted, darken on hover (not full black). */
 const footerColumnLink = `${footerText} transition-colors hover:text-foreground`;
 
-export function Footer() {
+export function Footer({ containerClassName }: { containerClassName?: string }) {
   return (
     <footer className="bg-surface pt-12 pb-3 md:pt-16 md:pb-4">
-      <div className="mx-auto w-full max-w-[1150px] px-6 min-[1198px]:px-0">
+      <div
+        className={cn(
+          "mx-auto w-full max-w-[1150px] px-6 min-[1198px]:px-0",
+          containerClassName
+        )}
+      >
         <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
           {/* Brand */}
           <div className="min-w-0 lg:max-w-[300px] lg:shrink-0">

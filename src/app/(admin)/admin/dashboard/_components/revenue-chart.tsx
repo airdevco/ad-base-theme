@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   Area,
   AreaChart,
@@ -13,6 +14,12 @@ import {
 } from "recharts";
 import { mockRevenueData } from "@/mock";
 import { formatNumber } from "@/lib/format";
+import { colorWithAlpha } from "@/lib/chart-tokens";
+import {
+  getThemePreviewElement,
+  useChartTheme,
+} from "@/lib/use-chart-theme";
+import { useThemePreviewChartRevision } from "@/lib/theme-preview-context";
 
 const avgRevenue =
   mockRevenueData.reduce((sum, d) => sum + d.revenue, 0) / mockRevenueData.length;
@@ -21,7 +28,15 @@ function formatMonth(value: string) {
   return value.split(" ")[0];
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg bg-background px-3 py-2.5 shadow-lg">
@@ -36,55 +51,55 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
-export function RevenueChart() {
+export function RevenueChart({ height = 250 }: { height?: number }) {
+  const gradientId = useId().replace(/:/g, "");
+  const revision = useThemePreviewChartRevision();
+  const { colors } = useChartTheme(getThemePreviewElement(), revision);
+
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={mockRevenueData} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
         <defs>
-          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(37, 99, 235, 0.15)" />
-            <stop offset="100%" stopColor="rgba(37, 99, 235, 0)" />
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors.chart1} stopOpacity={0.15} />
+            <stop offset="100%" stopColor={colors.chart1} stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#F3F4F6"
+          stroke={colors.border}
           horizontal
           vertical={false}
         />
         <XAxis
           dataKey="month"
           tickFormatter={formatMonth}
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => `$${(Number(v) / 1000).toFixed(0)}k`}
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip content={<CustomTooltip />} />
-        <ReferenceLine
-          y={avgRevenue}
-          stroke="#E5E7EB"
-          strokeDasharray="4 4"
-        />
+        <ReferenceLine y={avgRevenue} stroke={colors.border} strokeDasharray="4 4" />
         <Area
           type="monotone"
           dataKey="revenue"
           name="Revenue"
-          stroke="#2563EB"
+          stroke={colors.chart1}
           strokeWidth={2}
-          fill="url(#revenueGradient)"
+          fill={`url(#${gradientId})`}
           animationDuration={1200}
         />
         <Line
           type="monotone"
           dataKey="expenses"
           name="Expenses"
-          stroke="#64748B"
+          stroke={colors.chart3}
           strokeWidth={2}
           strokeDasharray="6 4"
           dot={false}

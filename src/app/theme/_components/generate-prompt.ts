@@ -9,6 +9,7 @@ import {
   hexToHsl,
   hasChanges,
 } from "./theme-state";
+import { deriveChartPalette } from "@/lib/chart-tokens";
 
 
 function getFontConfig(fontName: string) {
@@ -70,6 +71,11 @@ export function generatePrompt(state: ThemeState): string {
     lines.push(`--sidebar-primary: ${state.primaryColor};`);
     lines.push(`--sidebar-ring: ${state.primaryColor};`);
     lines.push(`--chart-1: ${state.primaryColor};`);
+    const lightCharts = deriveChartPalette(state.primaryColor, false);
+    lines.push(`--chart-2: ${lightCharts.chart2};`);
+    lines.push(`--chart-3: ${lightCharts.chart3};`);
+    lines.push(`--chart-4: ${lightCharts.chart4};`);
+    lines.push(`--chart-5: ${lightCharts.chart5};`);
     lines.push("```");
     lines.push("");
     lines.push(
@@ -385,39 +391,6 @@ export function generatePrompt(state: ThemeState): string {
     lines.push("- `src/components/home/why-choose-us.tsx`");
     lines.push("- `src/components/home/impact.tsx`");
     lines.push("- `src/components/home/contact.tsx`");
-    lines.push("");
-  }
-
-  // ── Branding ──
-  if (state.logoMode !== "none") {
-    lines.push("## Branding");
-    lines.push("");
-
-    if (state.logoMode === "upload") {
-      lines.push(
-        "Replace `/public/logo.svg` and `/public/logo-dark-mode.svg` with the client's logo files. Ensure both light and dark variants are provided."
-      );
-    } else if (state.logoMode === "placeholder" && state.logoText) {
-      lines.push(
-        `Update the app name from 'Airdev' to '${state.logoText}'.`
-      );
-      lines.push("");
-      lines.push("Steps:");
-      lines.push(
-        `- Update \`APP_NAME\` in \`src/lib/constants.ts\` to \`"${state.logoText}"\``
-      );
-      lines.push(
-        "- Replace `/public/logo.svg` and `/public/logo-dark-mode.svg` with the new brand logo"
-      );
-      lines.push(
-        `- Update the Logo component fallback text in \`src/components/layout/logo.tsx\``
-      );
-    }
-
-    lines.push("");
-    lines.push(
-      "Also update any hardcoded 'Airdev' text in `src/components/home/footer.tsx` and `src/components/layout/admin-sidebar.tsx`."
-    );
     lines.push("");
   }
 

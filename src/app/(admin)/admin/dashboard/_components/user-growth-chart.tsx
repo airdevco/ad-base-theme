@@ -11,12 +11,26 @@ import {
 } from "recharts";
 import { mockUserGrowthData } from "@/mock";
 import { formatNumber } from "@/lib/format";
+import { colorWithAlpha } from "@/lib/chart-tokens";
+import {
+  getThemePreviewElement,
+  useChartTheme,
+} from "@/lib/use-chart-theme";
+import { useThemePreviewChartRevision } from "@/lib/theme-preview-context";
 
 function formatMonth(value: string) {
   return value.split(" ")[0];
 }
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg bg-background px-3 py-2.5 shadow-lg">
@@ -30,26 +44,34 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
-export function UserGrowthChart() {
+export function UserGrowthChart({ height = 250 }: { height?: number }) {
+  const revision = useThemePreviewChartRevision();
+  const { colors } = useChartTheme(getThemePreviewElement(), revision);
+
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={mockUserGrowthData} margin={{ top: 5, right: 5, bottom: 0, left: -10 }} barGap={2} barCategoryGap="20%">
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart
+        data={mockUserGrowthData}
+        margin={{ top: 5, right: 5, bottom: 0, left: -10 }}
+        barGap={2}
+        barCategoryGap="20%"
+      >
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#F3F4F6"
+          stroke={colors.border}
           horizontal
           vertical={false}
         />
         <XAxis
           dataKey="month"
           tickFormatter={formatMonth}
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
           yAxisId="left"
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           tickFormatter={(v) => formatNumber(Number(v))}
           axisLine={false}
           tickLine={false}
@@ -58,18 +80,21 @@ export function UserGrowthChart() {
         <YAxis
           yAxisId="right"
           orientation="right"
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           tickFormatter={(v) => formatNumber(Number(v))}
           axisLine={false}
           tickLine={false}
           domain={[0, 1200]}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ fill: colorWithAlpha(colors.foreground, 0.04) }}
+        />
         <Bar
           yAxisId="left"
           dataKey="signups"
           name="Signups"
-          fill="#3B82F6"
+          fill={colors.chart1}
           radius={[4, 4, 0, 0]}
           animationDuration={1200}
         />
@@ -77,7 +102,7 @@ export function UserGrowthChart() {
           yAxisId="right"
           dataKey="activeUsers"
           name="Active Users"
-          fill="#93C5FD"
+          fill={colors.chart3}
           radius={[4, 4, 0, 0]}
           animationDuration={1200}
         />

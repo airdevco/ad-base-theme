@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Palette,
@@ -10,25 +10,14 @@ import {
   Lock,
   Sun,
   Moon,
-  Upload,
   X,
-  Briefcase,
-  Rocket,
-  Shield,
-  Zap,
-  Globe,
-  Star,
-  Building2,
-  Sparkles,
 } from "lucide-react";
-import type { ThemeState, ThemePreset, LogoMode } from "./theme-state";
+import type { ThemeState, ThemePreset } from "./theme-state";
 import {
   DEFAULTS,
   CURATED_FONTS,
   PRESETS,
   deriveBrandFromPrimary,
-  LOGO_ICONS,
-  generatePlaceholderLogoDataUrl,
 } from "./theme-state";
 import type { ThemePresetBundleV1 } from "./theme-preset-bundle";
 import {
@@ -41,6 +30,7 @@ import { ColorPicker } from "./color-picker";
 type ThemePanelProps = {
   theme: ThemeState;
   onChange: (theme: ThemeState) => void;
+  onReset: () => void;
   darkMode: boolean;
   onDarkModeChange: (dark: boolean) => void;
   onPresetApply: (preset: ThemePreset) => void;
@@ -55,6 +45,7 @@ type ThemePanelProps = {
 export function ThemePanel({
   theme,
   onChange,
+  onReset,
   darkMode,
   onDarkModeChange,
   onPresetApply,
@@ -173,7 +164,7 @@ export function ThemePanel({
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => onChange({ ...DEFAULTS })}
+              onClick={onReset}
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
               title="Reset to defaults"
             >
@@ -217,9 +208,6 @@ export function ThemePanel({
               ))}
             </div>
           </Section>
-
-          {/* Branding */}
-          <BrandingSection theme={theme} onUpdate={update} darkMode={darkMode} />
 
           {/* Light/Dark Toggle */}
           <Section title="Display">
@@ -305,41 +293,6 @@ export function ThemePanel({
                 onChange={(v) => update({ bodyFont: v })}
               />
             </div>
-
-            <div className="mt-3">
-              <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
-                Font Sizes (px)
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {(
-                  [
-                    ["H1", "h1Size"],
-                    ["H2", "h2Size"],
-                    ["H3", "h3Size"],
-                    ["H4", "h4Size"],
-                    ["H5", "h5Size"],
-                    ["H6", "h6Size"],
-                    ["Body", "bodySize"],
-                  ] as [string, keyof ThemeState][]
-                ).map(([label, key]) => (
-                  <div key={key}>
-                    <label className="mb-1 block text-[10px] font-medium text-zinc-500">
-                      {label}
-                    </label>
-                    <input
-                      type="number"
-                      min={8}
-                      max={120}
-                      value={theme[key] as number}
-                      onChange={(e) =>
-                        update({ [key]: parseInt(e.target.value) || 16 })
-                      }
-                      className="w-full rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs tabular-nums text-zinc-800 outline-none focus:border-zinc-400"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
           </Section>
 
 
@@ -417,33 +370,6 @@ export function ThemePanel({
                 </button>
               </div>
             )}
-          </Section>
-
-          {/* Border Radius */}
-          <Section title="Border Radius">
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={0}
-                max={1.5}
-                step={0.05}
-                value={theme.radius}
-                onChange={(e) =>
-                  update({ radius: parseFloat(e.target.value) })
-                }
-                className="flex-1"
-              />
-              <span className="min-w-[4rem] text-right text-xs tabular-nums text-zinc-600">
-                {theme.radius.toFixed(2)}rem
-              </span>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <div
-                className="h-8 w-12 border border-zinc-300 bg-zinc-100"
-                style={{ borderRadius: `${theme.radius}rem` }}
-              />
-              <span className="text-[10px] text-zinc-500">Preview</span>
-            </div>
           </Section>
         </div>
 
@@ -550,194 +476,5 @@ function FontSelect({
         ))}
       </select>
     </div>
-  );
-}
-
-// Map icon names to lucide components
-const ICON_COMPONENTS: Record<
-  string,
-  React.ComponentType<{ className?: string }>
-> = {
-  briefcase: Briefcase,
-  rocket: Rocket,
-  shield: Shield,
-  zap: Zap,
-  globe: Globe,
-  star: Star,
-  building: Building2,
-  sparkles: Sparkles,
-};
-
-function BrandingSection({
-  theme,
-  onUpdate,
-  darkMode,
-}: {
-  theme: ThemeState;
-  onUpdate: (partial: Partial<ThemeState>) => void;
-  darkMode: boolean;
-}) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const modes: { value: LogoMode; label: string }[] = [
-    { value: "none", label: "Default" },
-    { value: "upload", label: "Upload" },
-    { value: "placeholder", label: "Generate" },
-  ];
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      onUpdate({ logoDataUrl: reader.result as string, logoMode: "upload" });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handlePlaceholderChange = (text: string, icon: string) => {
-    const dataUrl = text
-      ? generatePlaceholderLogoDataUrl(text, icon, theme.primaryColor, darkMode)
-      : null;
-    onUpdate({ logoText: text, logoIcon: icon, logoDataUrl: dataUrl });
-  };
-
-  return (
-    <Section title="Branding">
-      {/* Mode tabs */}
-      <div className="mb-3 flex gap-1 rounded-lg border border-zinc-200 p-0.5">
-        {modes.map((mode) => (
-          <button
-            key={mode.value}
-            onClick={() => {
-              if (mode.value === "none") {
-                onUpdate({
-                  logoMode: "none",
-                  logoDataUrl: null,
-                  logoText: "",
-                  logoIcon: "briefcase",
-                });
-              } else {
-                onUpdate({ logoMode: mode.value });
-              }
-            }}
-            className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-              theme.logoMode === mode.value
-                ? "bg-zinc-900 text-white"
-                : "text-zinc-500 hover:text-zinc-700"
-            }`}
-          >
-            {mode.label}
-          </button>
-        ))}
-      </div>
-
-      {theme.logoMode === "none" && (
-        <p className="text-[11px] text-zinc-400">Using default Airdev logo</p>
-      )}
-
-      {theme.logoMode === "upload" && (
-        <div>
-          {theme.logoDataUrl ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3">
-                <img
-                  src={theme.logoDataUrl}
-                  alt="Uploaded logo"
-                  className="h-6 max-w-[120px] object-contain"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  onUpdate({ logoDataUrl: null });
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
-                title="Remove logo"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-zinc-200 py-4 text-xs text-zinc-400 transition-colors hover:border-zinc-300 hover:text-zinc-500"
-            >
-              <Upload className="h-4 w-4" />
-              Click to upload logo
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/svg+xml,image/png,image/jpeg,image/webp"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </div>
-      )}
-
-      {theme.logoMode === "placeholder" && (
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
-              Company Name
-            </label>
-            <input
-              type="text"
-              value={theme.logoText}
-              onChange={(e) =>
-                handlePlaceholderChange(e.target.value, theme.logoIcon)
-              }
-              placeholder="Acme Inc"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs text-zinc-800 outline-none focus:border-zinc-400"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-700">
-              Icon Mark
-            </label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {Object.entries(LOGO_ICONS).map(([key, icon]) => {
-                const IconComp = ICON_COMPONENTS[key];
-                return (
-                  <button
-                    key={key}
-                    onClick={() =>
-                      handlePlaceholderChange(theme.logoText, key)
-                    }
-                    className={`flex flex-col items-center gap-1 rounded-lg border p-2 transition-colors ${
-                      theme.logoIcon === key
-                        ? "border-zinc-900 bg-zinc-50"
-                        : "border-zinc-200 hover:border-zinc-300"
-                    }`}
-                    title={icon.label}
-                  >
-                    {IconComp && (
-                      <IconComp className="h-4 w-4 text-zinc-600" />
-                    )}
-                    <span className="text-[9px] text-zinc-400">
-                      {icon.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {theme.logoText && theme.logoDataUrl && (
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-              <div className="mb-1 text-[10px] text-zinc-400">Preview</div>
-              <img
-                src={theme.logoDataUrl}
-                alt="Logo preview"
-                className="h-10 object-contain"
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </Section>
   );
 }

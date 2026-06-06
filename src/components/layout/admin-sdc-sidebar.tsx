@@ -46,6 +46,24 @@ import {
 
 // ── Sidebar context ──────────────────────────────────────────────────
 
+export type AdminPreviewTab =
+  | "dashboard"
+  | "users"
+  | "email-templates"
+  | "settings";
+
+const PREVIEW_TAB_HREF: Record<AdminPreviewTab, string> = {
+  dashboard: ROUTES.admin.dashboard,
+  users: ROUTES.admin.users,
+  "email-templates": ROUTES.admin.emailTemplates,
+  settings: ROUTES.admin.settings,
+};
+
+function hrefToPreviewTab(href: string): AdminPreviewTab | null {
+  const entry = Object.entries(PREVIEW_TAB_HREF).find(([, h]) => h === href);
+  return entry ? (entry[0] as AdminPreviewTab) : null;
+}
+
 interface SidebarContextValue {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
@@ -54,6 +72,10 @@ interface SidebarContextValue {
   setDesktopCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   /** Opens the command palette; `"records"` matches the sidebar search (global record search). */
   openCommandPalette: (mode?: "actions" | "records") => void;
+  /** Theme preview: local tab switching instead of routing. */
+  previewTab?: AdminPreviewTab;
+  setPreviewTab?: (tab: AdminPreviewTab) => void;
+  isPreviewMode: boolean;
 }
 
 const SdcSidebarContext = createContext<SidebarContextValue>({
@@ -62,6 +84,7 @@ const SdcSidebarContext = createContext<SidebarContextValue>({
   desktopCollapsed: false,
   setDesktopCollapsed: () => {},
   openCommandPalette: () => {},
+  isPreviewMode: false,
 });
 
 export function useSdcSidebar() {
@@ -120,19 +143,29 @@ const navItems: NavItem[] = [
 
 // ── Provider ─────────────────────────────────────────────────────────
 
-export function SdcSidebarProvider({ children }: { children: React.ReactNode }) {
+export function SdcSidebarProvider({
+  children,
+  previewTab,
+  onPreviewTabChange,
+}: {
+  children: React.ReactNode;
+  previewTab?: AdminPreviewTab;
+  onPreviewTabChange?: (tab: AdminPreviewTab) => void;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandMode, setCommandMode] = useState<"actions" | "records">("actions");
+  const isPreviewMode = previewTab != null && onPreviewTabChange != null;
 
   const openCommandPalette = useCallback((mode: "actions" | "records" = "actions") => {
     setCommandMode(mode);
     setCommandOpen(true);
   }, []);
 
-  // ⌘K — quick actions (same as former sidebar “Quick actions” entry point)
+  // ⌘K — quick actions (disabled in theme preview)
   useEffect(() => {
+    if (isPreviewMode) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
@@ -147,7 +180,7 @@ export function SdcSidebarProvider({ children }: { children: React.ReactNode }) 
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isPreviewMode]);
 
   return (
     <SdcSidebarContext.Provider
@@ -157,14 +190,19 @@ export function SdcSidebarProvider({ children }: { children: React.ReactNode }) 
         desktopCollapsed,
         setDesktopCollapsed,
         openCommandPalette,
+        previewTab,
+        setPreviewTab: onPreviewTabChange,
+        isPreviewMode,
       }}
     >
       {children}
-      <CommandPalette
-        open={commandOpen}
-        onClose={() => setCommandOpen(false)}
-        initialMode={commandMode}
-      />
+      {!isPreviewMode && (
+        <CommandPalette
+          open={commandOpen}
+          onClose={() => setCommandOpen(false)}
+          initialMode={commandMode}
+        />
+      )}
     </SdcSidebarContext.Provider>
   );
 }
@@ -246,8 +284,27 @@ function WorkspaceSwitcher() {
 function UserProfile({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const session = useSession();
+  const { isPreviewMode } = useSdcSidebar();
   const { firstName, lastName, email } = session.user;
   const initials = `${firstName[0]}${lastName[0]}`;
+
+  if (isPreviewMode) {
+    return (
+      <div className="w-full px-2.5 py-2.5">
+        <div className="flex w-full items-center gap-2 rounded-[9px] px-2.5 py-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+            {initials}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="truncate text-[14px] font-semibold leading-none text-foreground">
+              {firstName} {lastName}
+            </span>
+            <span className="truncate text-[11px] leading-none text-muted-foreground">{email}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-2.5 py-2.5">
@@ -611,37 +668,60 @@ function CommandPalette({ open, onClose, initialMode = "actions" }: { open: bool
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { previewTab, setPreviewTab, isPreviewMode } = useSdcSidebar();
 
   return (
     <nav className="flex flex-1 flex-col gap-0 px-2.5 py-2">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive =
-          pathname === item.href || pathname.startsWith(item.href + "/");
+        const tabKey = hrefToPreviewTab(item.href);
+        const isActive = isPreviewMode
+          ? tabKey != null && previewTab === tabKey
+          : pathname === item.href || pathname.startsWith(item.href + "/");
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              "flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent/80 dark:hover:bg-sidebar-accent/60",
-              isActive && "text-primary"
-            )}
-          >
+        const className = cn(
+          "flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent/80 dark:hover:bg-sidebar-accent/60",
+          isActive && "text-primary"
+        );
+
+        const content = (
+          <>
             <Icon
               className={cn(
                 "size-4 shrink-0",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             />
-            <span
-              className={
-                isActive ? "text-primary" : "text-sidebar-foreground"
-              }
-            >
+            <span className={isActive ? "text-primary" : "text-sidebar-foreground"}>
               {item.label}
             </span>
+          </>
+        );
+
+        if (isPreviewMode && tabKey && setPreviewTab) {
+          return (
+            <button
+              key={item.href}
+              type="button"
+              onClick={() => {
+                setPreviewTab(tabKey);
+                onNavigate?.();
+              }}
+              className={className}
+            >
+              {content}
+            </button>
+          );
+        }
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={className}
+          >
+            {content}
           </Link>
         );
       })}

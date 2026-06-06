@@ -1,26 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import Link from "next/link";
-import { Menu } from "lucide-react";
-import { Logo } from "@/components/layout/logo";
-import { PrimaryCTA } from "@/components/home/shared";
-import { Hero } from "@/components/home/hero";
-import { WhyChooseUs } from "@/components/home/why-choose-us";
-import { Services } from "@/components/home/services";
-import { Features } from "@/components/home/features";
-import { Pricing } from "@/components/home/pricing";
-import { HowItWorks } from "@/components/home/how-it-works";
-import { Team } from "@/components/home/team";
-import { FAQ } from "@/components/home/faq";
-import { Contact } from "@/components/home/contact";
-import { Footer } from "@/components/home/footer";
-import { TestimonialSection } from "@/components/home/testimonial";
-import { Impact } from "@/components/home/impact";
 import { ThemePanel } from "./theme-panel";
 import type { ThemeState, ThemePreset } from "./theme-state";
-import { DEFAULTS, generatePlaceholderLogoDataUrl, computeDarkNavy, computeDarkBackground } from "./theme-state";
+import { DEFAULTS, computeDarkNavy, computeDarkBackground } from "./theme-state";
 import { buildPreviewStyle, buildScopedCSS } from "./build-theme-css";
 import type { ThemePresetBundleV1 } from "./theme-preset-bundle";
 import { themeStateFromBundle } from "./theme-preset-bundle";
@@ -29,22 +13,24 @@ import {
   themeStateFromLayerA,
   type ParsedThemeCss,
 } from "./parse-theme-css";
+import {
+  PreviewModeSwitcher,
+  type PreviewMode,
+} from "./preview-mode-switcher";
+import { PreviewHome } from "./previews/preview-home";
+import { PreviewAdmin } from "./previews/preview-admin";
+import { PreviewComponents } from "./previews/preview-components";
+import { ThemePreviewProvider } from "@/lib/theme-preview-context";
 
 const PREVIEW_ID = "theme-preview";
 const SCOPE = `#${PREVIEW_ID}`;
-
-const navLinks = [
-  { label: "Services", href: "#services" },
-  { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "How it works", href: "#how-it-works" },
-];
 
 export function ThemePage({ fontClasses }: { fontClasses: string }) {
   const isMobile = useIsMobile();
   const [theme, setTheme] = useState<ThemeState>({ ...DEFAULTS });
   const [darkMode, setDarkMode] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("components");
   const lightBrandRef = useRef(DEFAULTS.brandColor);
   const lightBgRef = useRef(DEFAULTS.backgroundColor);
   const activePresetRef = useRef<ThemePreset | null>(null);
@@ -52,6 +38,24 @@ export function ThemePage({ fontClasses }: { fontClasses: string }) {
   const [layerAOverrides, setLayerAOverrides] = useState<ParsedThemeCss | null>(null);
   const lightPanelRef = useRef<ThemeState>({ ...DEFAULTS });
   const darkPanelRef = useRef<ThemeState | null>(null);
+
+  const handlePreviewModeChange = (mode: PreviewMode) => {
+    setPreviewMode(mode);
+    scrollRef.current?.scrollTo(0, 0);
+  };
+
+  const handleReset = () => {
+    activePresetRef.current = null;
+    setLayerAOverrides(null);
+    darkPanelRef.current = null;
+    lightPanelRef.current = { ...DEFAULTS };
+    lightBrandRef.current = DEFAULTS.brandColor;
+    lightBgRef.current = DEFAULTS.backgroundColor;
+    setTheme({ ...DEFAULTS });
+    setDarkMode(false);
+  };
+
+  const chartRevision = `${theme.primaryColor}-${darkMode}`;
 
   // When toggling dark mode, use preset dark/light states if available, otherwise auto-derive
   const handleDarkModeChange = (dark: boolean) => {
@@ -82,7 +86,6 @@ export function ThemePage({ fontClasses }: { fontClasses: string }) {
     setDarkMode(dark);
   };
 
-  // Apply a preset: set theme state directly and toggle dark mode
   const handlePresetApply = (preset: ThemePreset) => {
     activePresetRef.current = preset;
     const presetDarkMode = !!preset.defaultDarkMode;
@@ -153,25 +156,6 @@ export function ThemePage({ fontClasses }: { fontClasses: string }) {
     };
   };
 
-  // Regenerate placeholder logo when primary color, text, or icon changes
-  useEffect(() => {
-    if (theme.logoMode === "placeholder" && theme.logoText) {
-      const newDataUrl = generatePlaceholderLogoDataUrl(
-        theme.logoText,
-        theme.logoIcon,
-        theme.primaryColor,
-        darkMode
-      );
-      if (newDataUrl !== theme.logoDataUrl) {
-        setTheme((prev) => ({ ...prev, logoDataUrl: newDataUrl }));
-      }
-    }
-  }, [theme.logoMode, theme.logoText, theme.logoIcon, theme.primaryColor, darkMode]);
-
-  const showCustomLogo =
-    theme.logoMode !== "none" && theme.logoDataUrl != null;
-
-  // Inline style sets --color-* Tailwind tokens directly (highest specificity)
   const previewStyle = useMemo(
     () => ({
       ...buildPreviewStyle(theme, darkMode, layerAOverrides),
@@ -181,7 +165,6 @@ export function ThemePage({ fontClasses }: { fontClasses: string }) {
     [theme, darkMode, layerAOverrides, panelOpen, isMobile]
   );
 
-  // Scoped CSS for brand overrides + heading sizes + dark mode card-holo
   const scopedCSS = useMemo(
     () => buildScopedCSS(theme, SCOPE, darkMode),
     [theme, darkMode]
@@ -191,83 +174,31 @@ export function ThemePage({ fontClasses }: { fontClasses: string }) {
     <div className="flex h-screen overflow-hidden">
       {scopedCSS && <style>{scopedCSS}</style>}
 
-      {/* Preview area — inline style sets all Tailwind --color-* tokens */}
       <div
         ref={scrollRef}
         id={PREVIEW_ID}
-        className={`flex-1 overflow-y-auto bg-background text-foreground ${fontClasses} ${darkMode ? "dark" : ""}`}
+        data-chart-revision={chartRevision}
+        className={`relative flex-1 overflow-y-auto bg-background text-foreground ${fontClasses} ${darkMode ? "dark" : ""}`}
         style={previewStyle}
       >
-        {/* Navigation bar — mirrors home layout */}
-        <nav className="sticky top-0 z-50 w-full border-b border-transparent bg-background">
-          <div className="mx-auto flex max-w-[1150px] items-center justify-between px-6 py-[20px] min-[1198px]:px-0">
-            <Link href="/" className="shrink-0">
-              {showCustomLogo ? (
-                <img
-                  src={theme.logoDataUrl!}
-                  alt="Logo"
-                  className="h-9 max-w-[240px] object-contain"
-                />
-              ) : (
-                <>
-                  <Logo
-                    height={24}
-                    className={darkMode ? "hidden" : "block"}
-                  />
-                  <Logo
-                    height={24}
-                    dark
-                    className={darkMode ? "block" : "hidden"}
-                  />
-                </>
-              )}
-            </Link>
+        <ThemePreviewProvider chartRevision={chartRevision}>
+          {previewMode === "home" && <PreviewHome darkMode={darkMode} />}
+          {previewMode === "admin" && <PreviewAdmin />}
+          {previewMode === "components" && <PreviewComponents />}
+        </ThemePreviewProvider>
 
-            <div className="hidden items-center gap-8 md:flex">
-              {navLinks.map((link) => (
-                <span
-                  key={link.label}
-                  className="cursor-default text-[16px] font-medium leading-[24px] tracking-[-0.8px] text-foreground"
-                >
-                  {link.label}
-                </span>
-              ))}
-            </div>
-
-            <div className="hidden items-center gap-5 md:flex">
-              <span className="cursor-default text-[16px] font-medium leading-[24px] tracking-[-0.8px] text-foreground">
-                Sign in
-              </span>
-              <PrimaryCTA href="#">Get started</PrimaryCTA>
-            </div>
-
-            <button className="md:hidden">
-              <Menu className="size-6" />
-            </button>
-          </div>
-        </nav>
-
-        {/* Homepage sections */}
-        <main>
-          <Hero />
-          <WhyChooseUs />
-          <Services />
-          <TestimonialSection />
-          <Features />
-          <Pricing />
-          <HowItWorks />
-          <Impact />
-          <Team />
-          <FAQ />
-          <Contact />
-          <Footer />
-        </main>
+        <div className="pointer-events-none sticky bottom-6 z-50 flex justify-center pb-2">
+          <PreviewModeSwitcher
+            value={previewMode}
+            onChange={handlePreviewModeChange}
+          />
+        </div>
       </div>
 
-      {/* Theme Panel */}
       <ThemePanel
         theme={theme}
         onChange={(t) => { activePresetRef.current = null; setLayerAOverrides(null); darkPanelRef.current = null; lightPanelRef.current = t; setTheme(t); }}
+        onReset={handleReset}
         darkMode={darkMode}
         onDarkModeChange={handleDarkModeChange}
         onPresetApply={handlePresetApply}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   Area,
   AreaChart,
@@ -11,6 +12,12 @@ import {
 } from "recharts";
 import { mockEmailEngagementData } from "@/mock";
 import { formatNumber } from "@/lib/format";
+import { colorWithAlpha } from "@/lib/chart-tokens";
+import {
+  getThemePreviewElement,
+  useChartTheme,
+} from "@/lib/use-chart-theme";
+import { useThemePreviewChartRevision } from "@/lib/theme-preview-context";
 
 function formatMonth(value: string) {
   return value.split(" ")[0];
@@ -22,7 +29,15 @@ const avgOpenRate = Math.round(
     100
 );
 
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string; color: string }>;
+  label?: string;
+}) {
   if (!active || !payload?.length) return null;
   const sent = payload.find((p) => p.name === "Sent")?.value ?? 0;
   const opened = payload.find((p) => p.name === "Opened")?.value ?? 0;
@@ -40,25 +55,40 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
-export function EmailEngagementChart() {
+export function EmailEngagementChart({ height = 220 }: { height?: number }) {
+  const sentGradientId = useId().replace(/:/g, "");
+  const openedGradientId = useId().replace(/:/g, "");
+  const revision = useThemePreviewChartRevision();
+  const { colors } = useChartTheme(getThemePreviewElement(), revision);
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={mockEmailEngagementData} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
+        <defs>
+          <linearGradient id={sentGradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors.chart3} stopOpacity={0.15} />
+            <stop offset="100%" stopColor={colors.chart3} stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id={openedGradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={colors.chart1} stopOpacity={0.2} />
+            <stop offset="100%" stopColor={colors.chart1} stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#F3F4F6"
+          stroke={colors.border}
           horizontal
           vertical={false}
         />
         <XAxis
           dataKey="month"
           tickFormatter={formatMonth}
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: "#9CA3AF" }}
+          tick={{ fontSize: 12, fill: colors.mutedForeground }}
           tickFormatter={(v) => formatNumber(Number(v))}
           axisLine={false}
           tickLine={false}
@@ -68,18 +98,18 @@ export function EmailEngagementChart() {
           type="monotone"
           dataKey="sent"
           name="Sent"
-          stroke="#93C5FD"
+          stroke={colors.chart3}
           strokeWidth={1.5}
-          fill="rgba(147, 197, 253, 0.15)"
+          fill={`url(#${sentGradientId})`}
           animationDuration={1200}
         />
         <Area
           type="monotone"
           dataKey="opened"
           name="Opened"
-          stroke="#3B82F6"
+          stroke={colors.chart1}
           strokeWidth={2}
-          fill="rgba(59, 130, 246, 0.2)"
+          fill={`url(#${openedGradientId})`}
           animationDuration={1200}
         />
       </AreaChart>
