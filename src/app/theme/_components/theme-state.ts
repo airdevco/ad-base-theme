@@ -52,6 +52,7 @@ export type CuratedFont = {
 
 export const CURATED_FONTS: CuratedFont[] = [
   { name: "Geist", weights: [400, 500, 600, 700], category: "sans-serif" },
+  { name: "Funnel Sans", weights: [400, 500, 600, 700], category: "sans-serif" },
   { name: "Inter", weights: [400, 500, 600, 700], category: "sans-serif" },
   { name: "DM Sans", weights: [400, 500, 600, 700], category: "sans-serif" },
   { name: "Space Grotesk", weights: [400, 500, 600, 700], category: "sans-serif" },
@@ -74,107 +75,12 @@ export type ThemePreset = {
   defaultDarkMode?: boolean;
   /** If provided, this preset has dedicated dark mode colors */
   darkState?: ThemeState;
+  /** Full TweakCN Layer A tokens (light + dark) */
+  layerA?: { light: import("./theme-preset-bundle").CssVarMap; dark: import("./theme-preset-bundle").CssVarMap };
+  editor?: "tweakcn" | "shadcn-create" | "manual";
+  /** How to merge panel state into Layer A (charts, ring, sidebar). */
+  layerAPatch?: import("./apply-panel-to-layer-a").LayerAPatchOptions;
 };
-
-export const PRESETS: ThemePreset[] = [
-  {
-    name: "Default",
-    description: "Inter / Blue",
-    swatch: "#266df0",
-    state: { ...DEFAULTS },
-  },
-  {
-    name: "Warm",
-    description: "Geist / Coral",
-    swatch: "#E5583E",
-    state: {
-      ...DEFAULTS,
-      primaryColor: "#E5583E",
-      brandColor: "#3D1A0A",
-      backgroundColor: "#FAF7F2",
-      headingFont: "Geist",
-      bodyFont: "Geist",
-      radius: 0.75,
-    },
-  },
-  {
-    name: "Minimal",
-    description: "DM Sans / Neutral",
-    swatch: "#18181B",
-    state: {
-      ...DEFAULTS,
-      primaryColor: "#18181B",
-      brandColor: "#000000",
-      headingFont: "DM Sans",
-      bodyFont: "DM Sans",
-      radius: 0.25,
-    },
-    darkState: {
-      ...DEFAULTS,
-      primaryColor: "#FAFAFA",
-      brandColor: "#000000",
-      backgroundColor: "#09090B",
-      headingFont: "DM Sans",
-      bodyFont: "DM Sans",
-      radius: 0.25,
-    },
-  },
-  {
-    name: "Bold",
-    description: "Space Grotesk / Purple",
-    swatch: "#7C3AED",
-    state: {
-      ...DEFAULTS,
-      primaryColor: "#7C3AED",
-      brandColor: "#1E1B4B",
-      headingFont: "Space Grotesk",
-      bodyFont: "Sora",
-      radius: 1,
-    },
-  },
-  {
-    name: "Teal",
-    description: "Sora / Teal",
-    swatch: "#2A9D8F",
-    state: {
-      ...DEFAULTS,
-      primaryColor: "#0F766E",
-      brandColor: "#134E4A",
-      backgroundColor: "#F0FDFA",
-      headingFont: "Sora",
-      bodyFont: "Sora",
-      radius: 0.75,
-    },
-    darkState: {
-      ...DEFAULTS,
-      primaryColor: "#2A9D8F",
-      brandColor: "#001914",
-      backgroundColor: "#060F0D",
-      headingFont: "Sora",
-      bodyFont: "Sora",
-      radius: 0.75,
-    },
-  },
-  {
-    name: "Emerald",
-    description: "Inter / Green",
-    swatch: "#10B981",
-    state: {
-      ...DEFAULTS,
-      primaryColor: "#059669",
-      brandColor: "#064E3B",
-      backgroundColor: "#F0FDF9",
-      radius: 0.5,
-    },
-    darkState: {
-      ...DEFAULTS,
-      primaryColor: "#10B981",
-      brandColor: "#000f09",
-      backgroundColor: "#050E09",
-      radius: 0.5,
-    },
-  },
-];
 
 /** Build a single Google Fonts URL that preloads all curated fonts with all weights */
 export function buildAllFontsUrl(): string {
@@ -326,6 +232,15 @@ export type ExtensionTokens = {
 
 /** Derive Layer B brand base from primary (same hue, low lightness). */
 export function deriveBrandFromPrimary(primary: string): string {
+  const { l } = hexToHsl(primary);
+  // Light primaries (e.g. minimalist dark-mode panel): navy from hue
+  if (l > 0.55) {
+    return computeDarkNavy(primary);
+  }
+  // Already a dark brand-like primary — deepen slightly for gradient range
+  if (l < 0.22) {
+    return darkenHex(primary, 0.03);
+  }
   return computeDarkNavy(primary);
 }
 

@@ -26,6 +26,32 @@ export function deriveChartPalette(
   };
 }
 
+/** Primary + neutral gray steps — for minimal / monochrome presets. */
+export function deriveNeutralChartPalette(
+  primaryColor: string,
+  isDark: boolean
+): ChartPalette {
+  const chart1 = isDark ? computeDarkVariant(primaryColor) : primaryColor;
+
+  if (isDark) {
+    return {
+      chart1,
+      chart2: "hsl(0 0% 55%)",
+      chart3: "hsl(0 0% 65%)",
+      chart4: "hsl(0 0% 42%)",
+      chart5: "hsl(0 0% 78%)",
+    };
+  }
+
+  return {
+    chart1,
+    chart2: "hsl(0 0% 62%)",
+    chart3: "hsl(0 0% 74%)",
+    chart4: "hsl(0 0% 45%)",
+    chart5: "hsl(0 0% 88%)",
+  };
+}
+
 /** Apply chart palette to a token map for preview inline styles. */
 export function chartPaletteToTokens(
   palette: ChartPalette

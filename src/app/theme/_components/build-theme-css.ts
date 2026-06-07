@@ -1,13 +1,15 @@
 import type { ThemeState } from "./theme-state";
 import { DEFAULTS, computeDarkVariant, deriveExtensionTokens, CURATED_FONTS, hexToHsl } from "./theme-state";
 import type { CssVarMap } from "./theme-preset-bundle";
-import { layerAToPreviewTokens } from "./parse-theme-css";
-import { chartPaletteToTokens, deriveChartPalette } from "@/lib/chart-tokens";
+import { layerAToPreviewTokens, resolveInputBorderColor } from "./parse-theme-css";
+import { chartPaletteToTokens, deriveChartPalette, deriveNeutralChartPalette } from "@/lib/chart-tokens";
+import type { LayerAPatchOptions } from "./apply-panel-to-layer-a";
 
 
 /** Map font display names to their next/font CSS variable names */
 const FONT_VAR_MAP: Record<string, string> = {
   Inter: "var(--font-preview-inter)",
+  "Funnel Sans": "var(--font-preview-funnel-sans)",
   "DM Sans": "var(--font-preview-dm-sans)",
   "Space Grotesk": "var(--font-preview-space-grotesk)",
   Outfit: "var(--font-preview-outfit)",
@@ -147,7 +149,8 @@ function buildDarkTokens(
 export function buildPreviewStyle(
   theme: ThemeState,
   isDark: boolean,
-  layerA?: { light: CssVarMap; dark: CssVarMap } | null
+  layerA?: { light: CssVarMap; dark: CssVarMap } | null,
+  layerAPatch?: LayerAPatchOptions
 ): React.CSSProperties {
   // Dark tokens are derived from navy color for a rich branded feel;
   // primary color is baked into the dark tokens by the builder function.
@@ -165,6 +168,21 @@ export function buildPreviewStyle(
 
   if (activeLayerA) {
     Object.assign(tokens, layerAToPreviewTokens(activeLayerA));
+    const surface =
+      activeLayerA["--background"] ??
+      theme.backgroundColor ??
+      activeLayerA["--muted"] ??
+      "#fafafa";
+    tokens["--color-surface"] = surface;
+    tokens["--surface"] = surface;
+
+    const inputBorder = resolveInputBorderColor(activeLayerA);
+    const shadowXs = activeLayerA["--shadow-xs"];
+    const ring = activeLayerA["--ring"];
+    if (inputBorder && shadowXs) {
+      tokens["--input-shadow"] = `${shadowXs}, 0 0 0 1px ${inputBorder} inset`;
+      tokens["--input-shadow-focus"] = `${shadowXs}, 0 0 0 1px ${ring ?? inputBorder} inset`;
+    }
   }
 
   if (!isDark && theme.primaryColor !== DEFAULTS.primaryColor && !activeLayerA) {
@@ -180,19 +198,37 @@ export function buildPreviewStyle(
     tokens["--color-sidebar"] = theme.backgroundColor;
   }
 
-  const layerHasCharts =
-    activeLayerA != null &&
-    (Boolean(activeLayerA["--chart-1"]) || Boolean(activeLayerA["--color-chart-1"]));
-  if (!layerHasCharts) {
+  const chartsFromPrimary = layerAPatch?.chartsFromPrimary;
+  if (chartsFromPrimary === "neutral") {
+    Object.assign(
+      tokens,
+      chartPaletteToTokens(
+        deriveNeutralChartPalette(theme.primaryColor, isDark)
+      )
+    );
+  } else if (chartsFromPrimary === "hue") {
     Object.assign(
       tokens,
       chartPaletteToTokens(deriveChartPalette(theme.primaryColor, isDark))
     );
+  } else {
+    const layerHasCharts =
+      activeLayerA != null &&
+      (Boolean(activeLayerA["--chart-1"]) ||
+        Boolean(activeLayerA["--color-chart-1"]));
+    if (!layerHasCharts) {
+      Object.assign(
+        tokens,
+        chartPaletteToTokens(deriveChartPalette(theme.primaryColor, isDark))
+      );
+    }
   }
 
-
   // Layer B brand tokens (hero/auth use bg-brand / bg-brand-gradient)
-  const ext = deriveExtensionTokens(theme.primaryColor, theme.brandColor);
+  const ext = deriveExtensionTokens(
+    theme.primaryColor,
+    theme.brandOverridden ? theme.brandColor : undefined
+  );
   tokens["--color-brand"] = ext.brand;
   tokens["--color-brand-foreground"] = ext.brandForeground;
   tokens["--color-brand-hover"] = ext.brandHover;
@@ -213,13 +249,34 @@ export function buildPreviewStyle(
   tokens["--primary-hover"] = ext.primaryHover;
   tokens["--primary-active"] = ext.primaryActive;
 
-  // Radius
+  // Radius — honor Layer A (e.g. Playful 0px) without negative calc tiers
   const style: Record<string, string> = { ...tokens };
   const layerRadius = activeLayerA?.["--radius"];
-  style["--radius"] = layerRadius ?? `${theme.radius}rem`;
-  style["--radius-lg"] = `${theme.radius}rem`;
-  style["--radius-md"] = `calc(${theme.radius}rem - 2px)`;
-  style["--radius-sm"] = `calc(${theme.radius}rem - 4px)`;
+  const isZeroRadius =
+    layerRadius === "0" ||
+    layerRadius === "0px" ||
+    layerRadius === "0rem" ||
+    theme.radius === 0;
+
+  if (layerRadius) {
+    style["--radius"] = layerRadius;
+    style["--radius-lg"] = layerRadius;
+    style["--radius-md"] = isZeroRadius
+      ? "0px"
+      : `max(0px, calc(${layerRadius} - 2px))`;
+    style["--radius-sm"] = isZeroRadius
+      ? "0px"
+      : `max(0px, calc(${layerRadius} - 4px))`;
+  } else {
+    style["--radius"] = `${theme.radius}rem`;
+    style["--radius-lg"] = `${theme.radius}rem`;
+    style["--radius-md"] = isZeroRadius
+      ? "0px"
+      : `calc(${theme.radius}rem - 2px)`;
+    style["--radius-sm"] = isZeroRadius
+      ? "0px"
+      : `calc(${theme.radius}rem - 4px)`;
+  }
 
   // Heading font
   style["--font-heading"] = getFontValue(theme.headingFont);
@@ -243,7 +300,23 @@ export function buildPreviewStyle(
  * Build scoped CSS for overrides that can't be done with inline styles
  * (heading sizes, dark mode card-holo).
  */
-export function buildScopedCSS(theme: ThemeState, scope: string, isDark: boolean): string {
+const SHADOW_UTILITIES = [
+  "shadow-2xs",
+  "shadow-xs",
+  "shadow-sm",
+  "shadow",
+  "shadow-md",
+  "shadow-lg",
+  "shadow-xl",
+  "shadow-2xl",
+] as const;
+
+export function buildScopedCSS(
+  theme: ThemeState,
+  scope: string,
+  isDark: boolean,
+  layerA?: CssVarMap | null
+): string {
   const lines: string[] = [];
 
   // Heading font sizes — only override when changed
@@ -259,6 +332,15 @@ export function buildScopedCSS(theme: ThemeState, scope: string, isDark: boolean
 
   // Radius overrides — scale hardcoded rounded-[Npx] classes proportionally
   lines.push(buildRadiusOverrides(scope));
+
+  if (layerA?.["--shadow-xs"]) {
+    for (const utility of SHADOW_UTILITIES) {
+      const token = layerA[`--${utility}`];
+      if (token) {
+        lines.push(`${scope} .${utility} { box-shadow: var(--${utility}); }`);
+      }
+    }
+  }
 
   // Dark mode: override card-holo gradient with branded dark colors
   if (isDark) {

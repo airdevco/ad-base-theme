@@ -48,7 +48,7 @@ import { RevenueChart } from "@/app/(admin)/admin/dashboard/_components/revenue-
 import { UserGrowthChart } from "@/app/(admin)/admin/dashboard/_components/user-growth-chart";
 
 const PREVIEW_SELECT_CLASS =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none transition-[border-color] focus-visible:border-primary focus-visible:outline-none";
+  "flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition-[border-color,box-shadow] focus-visible:border-primary focus-visible:outline-none";
 
 const GOAL_BUTTON_CLASS =
   "inline-flex size-8 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";

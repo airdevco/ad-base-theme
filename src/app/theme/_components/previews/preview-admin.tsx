@@ -55,9 +55,9 @@ export function PreviewAdmin() {
   const [tab, setTab] = useState<AdminPreviewTab>("dashboard");
 
   return (
-    <div className="admin-sdc-root flex min-h-screen flex-col">
+    <div className="admin-sdc-root flex min-h-0 flex-1 flex-col">
       <SdcSidebarProvider previewTab={tab} onPreviewTabChange={setTab}>
-        <div className="flex min-h-screen flex-1 overflow-hidden bg-background text-foreground">
+        <div className="flex min-h-0 flex-1 overflow-hidden bg-background text-foreground">
           <AdminSdcSidebar />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-background px-5 md:px-10">
             <div className={cn("flex min-h-0 flex-1 flex-col", PREVIEW_INERT_CLASS)}>

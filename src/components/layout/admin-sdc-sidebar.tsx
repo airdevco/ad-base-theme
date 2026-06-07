@@ -681,7 +681,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 
         const className = cn(
           "flex items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent/80 dark:hover:bg-sidebar-accent/60",
-          isActive && "text-primary"
+          isActive && "bg-sidebar-accent text-sidebar-primary"
         );
 
         const content = (
@@ -689,10 +689,12 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <Icon
               className={cn(
                 "size-4 shrink-0",
-                isActive ? "text-primary" : "text-muted-foreground"
+                isActive ? "text-sidebar-primary" : "text-muted-foreground"
               )}
             />
-            <span className={isActive ? "text-primary" : "text-sidebar-foreground"}>
+            <span
+              className={isActive ? "text-sidebar-primary" : "text-sidebar-foreground"}
+            >
               {item.label}
             </span>
           </>

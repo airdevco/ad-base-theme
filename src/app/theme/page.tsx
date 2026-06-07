@@ -1,6 +1,7 @@
 import {
   Inter,
   DM_Sans,
+  Funnel_Sans,
   Space_Grotesk,
   Outfit,
   Plus_Jakarta_Sans,
@@ -16,6 +17,7 @@ import { ThemePage } from "./_components/theme-page";
 import type { Metadata } from "next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-preview-inter", weight: ["400", "500", "600", "700"], display: "swap" });
+const funnelSans = Funnel_Sans({ subsets: ["latin"], variable: "--font-preview-funnel-sans", weight: ["400", "500", "600", "700"], display: "swap" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-preview-dm-sans", weight: ["400", "500", "600", "700"], display: "swap" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-preview-space-grotesk", weight: ["400", "500", "600", "700"], display: "swap" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-preview-outfit", weight: ["400", "500", "600", "700"], display: "swap" });
@@ -29,7 +31,7 @@ const merriweather = Merriweather({ subsets: ["latin"], variable: "--font-previe
 const lora = Lora({ subsets: ["latin"], variable: "--font-preview-lora", weight: ["400", "500", "600", "700"], display: "swap" });
 
 const fontClasses = [
-  inter, dmSans, spaceGrotesk, outfit, plusJakartaSans, sora,
+  inter, funnelSans, dmSans, spaceGrotesk, outfit, plusJakartaSans, sora,
   manrope, poppins, raleway, playfairDisplay, merriweather, lora,
 ].map((f) => f.variable).join(" ");
 

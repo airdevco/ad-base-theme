@@ -51,6 +51,14 @@
   --status-neutral-bg: #f3f4f6;
   --status-neutral-text: #6b7280;
   --radius: 0.5rem;
+  --shadow-2xs: 0 1px rgb(0 0 0 / 0.05);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   --font-heading: var(--font-geist-sans), 'Geist', sans-serif;
   --sidebar: #fbfbfb;
   /* Primary CTA: same hue/saturation, small lightness steps (opaque paint, not blend/opacity) */
@@ -121,6 +129,14 @@
   --status-error-text: hsl(0 60% 65%);
   --status-neutral-bg: hsl(217 15% 15%);
   --status-neutral-text: hsl(217 8% 60%);
+  --shadow-2xs: 0 1px rgb(0 0 0 / 0.2);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.25);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.25);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.45);
   --primary-hover: hsl(217 87% 57%);
   --primary-active: hsl(217 87% 52%);
   --brand: #1e2f5c;
@@ -141,6 +157,15 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

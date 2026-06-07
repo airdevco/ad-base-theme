@@ -6,6 +6,7 @@ import {
   deriveExtensionTokens,
   type ExtensionTokens,
 } from "./theme-state";
+import { resolveInputBorderColor } from "./parse-theme-css";
 
 /** CSS custom properties keyed as `--token-name` (Layer A or B). */
 export type CssVarMap = Record<string, string>;
@@ -61,7 +62,7 @@ export type BundleValidationResult =
   | { ok: true; bundle: ThemePresetBundleV1 }
   | { ok: false; error: string };
 
-function extensionToLayerB(ext: ExtensionTokens): CssVarMap {
+function extensionToLayerB(ext: ExtensionTokens, surface?: string): CssVarMap {
   return {
     "--brand": ext.brand,
     "--brand-foreground": ext.brandForeground,
@@ -72,6 +73,7 @@ function extensionToLayerB(ext: ExtensionTokens): CssVarMap {
     "--gradient-brand-to": ext.gradientBrandTo,
     "--primary-hover": ext.primaryHover,
     "--primary-active": ext.primaryActive,
+    ...(surface ? { "--surface": surface } : {}),
   };
 }
 
@@ -92,11 +94,25 @@ function buildLayerAForState(state: ThemeState, mode: "light" | "dark"): CssVarM
   };
 }
 
-function buildLayerBForState(state: ThemeState): CssVarMap {
+function buildLayerBForState(state: ThemeState, layerA?: CssVarMap): CssVarMap {
   const brandOverride = state.brandOverridden ? state.brandColor : undefined;
-  return extensionToLayerB(
-    deriveExtensionTokens(state.primaryColor, brandOverride)
+  const surface = layerA?.["--sidebar"] ?? "#fafafa";
+  const layerB = extensionToLayerB(
+    deriveExtensionTokens(state.primaryColor, brandOverride),
+    surface
   );
+
+  if (layerA) {
+    const inputBorder = resolveInputBorderColor(layerA);
+    const shadowXs = layerA["--shadow-xs"];
+    const ring = layerA["--ring"];
+    if (inputBorder && shadowXs) {
+      layerB["--input-shadow"] = `${shadowXs}, 0 0 0 1px ${inputBorder} inset`;
+      layerB["--input-shadow-focus"] = `${shadowXs}, 0 0 0 1px ${ring ?? inputBorder} inset`;
+    }
+  }
+
+  return layerB;
 }
 
 function cloneThemeState(state: ThemeState): ThemeState {
@@ -134,8 +150,8 @@ export function bundleFromThemeState(input: BundleExportInput): ThemePresetBundl
       dark: buildLayerAForState(darkPanel, "dark"),
     },
     layerB: {
-      light: buildLayerBForState(light),
-      dark: buildLayerBForState(darkPanel),
+      light: buildLayerBForState(light, input.layerA?.light),
+      dark: buildLayerBForState(darkPanel, input.layerA?.dark),
     },
   };
 }

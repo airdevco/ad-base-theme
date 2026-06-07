@@ -169,6 +169,26 @@ function filterLayerA(all: CssVarMap): CssVarMap {
   return out;
 }
 
+/** When --input matches the field fill, borders should use --border (TweakCN Playful). */
+export function resolveInputBorderColor(layerA: CssVarMap): string | undefined {
+  const input = layerA["--input"];
+  const background = layerA["--background"];
+  const border = layerA["--border"];
+  if (!input || !background || !border) return undefined;
+
+  const inputHex = cssColorToHex(input);
+  const bgHex = cssColorToHex(background);
+  if (inputHex && bgHex && inputHex === bgHex) {
+    return border;
+  }
+
+  if (input.replace(/\s+/g, "") === background.replace(/\s+/g, "")) {
+    return border;
+  }
+
+  return undefined;
+}
+
 /** Apply Layer A vars to preview inline style (raw + Tailwind `--color-*`). */
 export function layerAToPreviewTokens(layerA: CssVarMap): Record<string, string> {
   const tokens: Record<string, string> = {};
@@ -185,6 +205,11 @@ export function layerAToPreviewTokens(layerA: CssVarMap): Record<string, string>
     if (name === "sidebar-background") {
       tokens["--sidebar"] = value;
     }
+  }
+
+  const inputBorder = resolveInputBorderColor(layerA);
+  if (inputBorder) {
+    tokens["--color-input"] = inputBorder;
   }
 
   return tokens;
@@ -219,10 +244,18 @@ export function themeStateFromLayerA(
 
 function parseRadiusRem(value: string | undefined): number | undefined {
   if (!value) return undefined;
-  const match = value.trim().match(/^([\d.]+)rem$/);
-  if (!match) return undefined;
-  const n = parseFloat(match[1]);
-  return Number.isFinite(n) ? n : undefined;
+  const trimmed = value.trim();
+  const remMatch = trimmed.match(/^([\d.]+)rem$/);
+  if (remMatch) {
+    const n = parseFloat(remMatch[1]);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  const pxMatch = trimmed.match(/^([\d.]+)px$/);
+  if (pxMatch) {
+    const n = parseFloat(pxMatch[1]);
+    return Number.isFinite(n) ? n / 16 : undefined;
+  }
+  return undefined;
 }
 
 function parseFontFromStack(value: string | undefined): string | undefined {

@@ -16,16 +16,18 @@ import type { ThemeState, ThemePreset } from "./theme-state";
 import {
   DEFAULTS,
   CURATED_FONTS,
-  PRESETS,
   deriveBrandFromPrimary,
 } from "./theme-state";
+import { PRESETS } from "./presets";
 import type { ThemePresetBundleV1 } from "./theme-preset-bundle";
 import {
   bundleFromThemeState,
   parsePresetBundleJson,
   serializePresetBundle,
 } from "./theme-preset-bundle";
+import { globalsCssFromBundle } from "./export-globals-css";
 import { ColorPicker } from "./color-picker";
+import { cn } from "@/lib/utils";
 
 type ThemePanelProps = {
   theme: ThemeState;
@@ -38,6 +40,8 @@ type ThemePanelProps = {
   getExportInput: () => Parameters<typeof bundleFromThemeState>[0];
   onImportThemeCss: (css: string) => { ok: true } | { ok: false; error: string };
   hasLayerAImport?: boolean;
+  activePresetName?: string | null;
+  hasOverrides?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -53,11 +57,14 @@ export function ThemePanel({
   getExportInput,
   onImportThemeCss,
   hasLayerAImport,
+  activePresetName,
+  hasOverrides = false,
   open,
   onOpenChange,
 }: ThemePanelProps) {
   const isMobile = useIsMobile();
   const [copiedPreset, setCopiedPreset] = useState(false);
+  const [copiedCss, setCopiedCss] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
@@ -95,6 +102,13 @@ export function ThemePanel({
     await navigator.clipboard.writeText(serializePresetBundle(bundle));
     setCopiedPreset(true);
     setTimeout(() => setCopiedPreset(false), 2000);
+  };
+
+  const handleCopyGlobalsCss = async () => {
+    const bundle = bundleFromThemeState(getExportInput());
+    await navigator.clipboard.writeText(globalsCssFromBundle(bundle));
+    setCopiedCss(true);
+    setTimeout(() => setCopiedCss(false), 2000);
   };
 
 
@@ -186,27 +200,51 @@ export function ThemePanel({
           {/* Presets */}
           <Section title="Presets">
             <div className="grid grid-cols-2 gap-2">
-              {PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => onPresetApply(preset)}
-                  className="flex items-center gap-2.5 rounded-lg border border-zinc-200 px-3 py-2 text-left transition-all hover:border-zinc-300 hover:shadow-sm"
-                >
-                  <div
-                    className="h-5 w-5 shrink-0 rounded-full border border-black/10"
-                    style={{ backgroundColor: preset.swatch }}
-                  />
-                  <div>
-                    <div className="text-xs font-medium text-zinc-800">
-                      {preset.name}
+              {PRESETS.map((preset) => {
+                const isSelected = activePresetName === preset.name;
+                const isModified = isSelected && hasOverrides;
+
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => onPresetApply(preset)}
+                    className={cn(
+                      "relative flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors",
+                      isSelected
+                        ? "border-zinc-900"
+                        : "border-zinc-200 hover:border-zinc-300"
+                    )}
+                  >
+                    <div
+                      className="h-5 w-5 shrink-0 rounded-full border border-black/10"
+                      style={{ backgroundColor: preset.swatch }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-xs font-medium text-zinc-800">
+                          {preset.name}
+                        </span>
+                        {isModified && (
+                          <span className="shrink-0 rounded bg-amber-100 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-800">
+                            Edited
+                          </span>
+                        )}
+                      </div>
+                      <div className="truncate text-[10px] text-zinc-500">
+                        {preset.description}
+                      </div>
                     </div>
-                    <div className="text-[10px] text-zinc-500">
-                      {preset.description}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
+            {hasOverrides && activePresetName && (
+              <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+                {activePresetName} has custom changes. Copy Preset JSON or Copy CSS
+                includes your overrides.
+              </p>
+            )}
           </Section>
 
           {/* Light/Dark Toggle */}
@@ -382,6 +420,13 @@ export function ThemePanel({
             <Copy className="h-3.5 w-3.5" />
             {copiedPreset ? "Copied!" : "Copy Preset JSON"}
           </button>
+          <button
+            onClick={handleCopyGlobalsCss}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copiedCss ? "Copied!" : "Copy CSS for ad-base"}
+          </button>
           {/* Copy Prompt hidden until Apply CSS (4c) — generate-prompt.ts kept */}
           <div>
             <button
@@ -430,15 +475,20 @@ export function ThemePanel({
 
 function Section({
   title,
+  action,
   children,
 }: {
   title: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-5">
-      <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-        {title}
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+          {title}
+        </div>
+        {action}
       </div>
       {children}
     </div>

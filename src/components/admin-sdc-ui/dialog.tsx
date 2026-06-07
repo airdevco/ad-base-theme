@@ -121,7 +121,7 @@ const DialogFooter = React.forwardRef<
   <div ref={ref} className="flex flex-col pt-3">
     <div
       className={cn(
-        "flex justify-end gap-2 rounded-b-xl border-t border-border bg-surface px-6 py-3",
+        "flex justify-end gap-2 rounded-b-xl border-t border-border bg-background px-6 py-3",
         className
       )}
       {...props}

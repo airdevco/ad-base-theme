@@ -75,7 +75,7 @@ export function WhiteCTA({
   return (
     <Link
       href={href}
-      className="inline-flex h-[39px] items-center gap-2 rounded-[1000px] bg-white pl-[14px] pr-[3px] text-[16px] font-medium leading-[24px] tracking-[-0.05em] text-brand transition-colors duration-200 hover:bg-secondary active:bg-muted font-sans"
+      className="inline-flex h-[39px] items-center gap-2 rounded-[1000px] bg-background pl-[14px] pr-[3px] text-[16px] font-medium leading-[24px] tracking-[-0.05em] text-brand transition-colors duration-200 hover:bg-secondary active:bg-muted font-sans"
     >
       {children}
       <span className="flex size-[33px] items-center justify-center rounded-full bg-brand/10">
